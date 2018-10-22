@@ -1,0 +1,87 @@
+#!/bin/bash
+
+
+################################################################
+# Constants
+readonly       THIS_JOB=${0##*/}
+readonly       ARGS_NBR=0
+readonly       ALERT=70
+
+declare -x  mrecipients="p.doulgeridis@dei.com.gr"
+#k.athanasopoulos@dei.com.gr,i.niarchos@dei.com.gr
+declare -x  msender="controller@dei.com.gr"
+declare -x  mtitle="DISK USAGE NOTIFICATION"
+#declare -x  ccrecipients="K.Athanasopoulos@dei.com.gr,i.niarchos@dei.com.gr,i.Stasinopoulos@dei.com.gr,p.doulgeridis@dei.com.gr,F.Opsimouli@dei.com.gr,K.Stouraitou@dei.com.gr" 
+
+
+function usage(){
+
+	echo " Script : $THIS_JOB called as :"
+	echo " $THIS_JOB <DATE>"
+	echo " Date must be in the format YYMMDD "
+	echo " Script will search for the lines of FILTER (2 fields) and "
+	echo " find matches in FILE_INPUT, then email."
+	echo
+
+}
+
+
+
+
+function chk_abnd_silent()
+{
+  local     abnd
+  
+  abnd=$1
+  # date
+  if [ $abnd -ne 0 ]; then
+    echo "Failed with status " $abnd; echo
+    #rm +++++++++++++
+    exit $abnd
+    #return $abnd
+  # else
+    # echo "Done"; echo
+  fi
+}
+#
+
+
+# Check arguments
+function chk_args()
+{
+  local        nbr_args=$1
+  
+  if [ $nbr_args -ne $ARGS_NBR ]; then
+      echo "Wrong number of parameters = " $nbr_args
+      usage
+	  exit 69
+  else
+	 #echo "User has supplied the correct number of arguments"
+     return 0
+  fi
+}
+
+
+#################################################################
+# Script start.
+echo $THIS_JOB " start time at `date` "; echo
+echo "-"
+
+# Check number of arguments
+chk_args $#
+
+# Run continuously
+# while true
+# do
+	df -H | grep -vE '^Filesystem|tmpfs|cdrom' | awk '{ print $5 " " $1 }' | while read output;
+	do
+	#echo $output
+	usep=$(echo $output | awk '{ print $1}' | cut -d'%' -f1  )
+	partition=$(echo $output | awk '{ print $2 }' )
+	if [ $usep -ge $ALERT ]; then
+		echo "Running out of space \"$partition ($usep%)\" on $(hostname) as on $(date)" |
+		mailx -S smtp=holhub -r $msender -s $mtitle -v $mrecipients  
+    sleep 2
+	fi
+	done
+# done
